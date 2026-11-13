@@ -97,11 +97,12 @@ input[type=date]{font:inherit;color:var(--text);background:var(--bg);border:1px 
 .trow b{font-variant-numeric:tabular-nums}
 .bar{height:8px;border-radius:4px;background:var(--bg);margin-top:5px;overflow:hidden}
 .bar i{display:block;height:100%;border-radius:4px}
-details.card summary{list-style:none;display:flex;justify-content:space-between;align-items:center;font-weight:600}
-details.card summary::-webkit-details-marker{display:none}
-details.card summary span{color:var(--muted);font-weight:400;font-size:13px}
-details.card ul{margin:10px 0 0;padding-left:18px;color:var(--muted)}
-details.card li{margin:3px 0}
+.warm details+.row2{margin-top:12px}
+.warm summary{list-style:none;display:flex;justify-content:space-between;align-items:center;font-weight:600}
+.warm summary::-webkit-details-marker{display:none}
+.warm summary span{color:var(--muted);font-weight:400;font-size:13px}
+.warm ul{margin:10px 0 0;padding-left:18px;color:var(--muted)}
+.warm li{margin:3px 0}
 
 /* ejercicio */
 .ex{background:var(--surface);border-radius:16px;padding:14px;margin-bottom:10px;border-left:4px solid var(--line)}
@@ -320,7 +321,9 @@ function renderHoy(){
   h+='<div class="seg"><button data-day="sup" class="sup'+(day==='sup'?' on':'')+'">Tren superior</button><button data-day="inf" class="inf'+(day==='inf'?' on':'')+'">Tren inferior</button></div>';
   var rt=s?runTime(s):0;
   h+='<div class="rt"><div><span>Tiempo de rutina</span><b data-tick data-t="'+((s&&s.dur)||0)+'" data-t0="'+((s&&s.t0)||'')+'">'+clock(rt)+'</b></div><button class="btn'+(s&&s.t0?' run':'')+'" data-a="rt">'+(s&&s.t0?'Pausar':(rt>0?'Continuar':'Iniciar'))+'</button></div>';
-  h+='<details class="card"><summary>Calentamiento <span>2 vueltas</span></summary><ul>'+R.warm.map(function(x){return '<li>'+esc(x)+'</li>'}).join('')+'</ul></details>';
+  var we=(s&&s.e.cal)||{};
+  h+='<div class="card warm" data-id="cal"><details><summary>Calentamiento <span>2 vueltas</span></summary><ul>'+R.warm.map(function(x){return '<li>'+esc(x)+'</li>'}).join('')+'</ul></details>'+
+    '<div class="row2"><button class="tbtn'+(we.t0?' run':'')+'" data-a="tm" aria-label="'+(we.t0?'Pausar':'Iniciar')+' cronómetro del calentamiento"><svg viewBox="0 0 24 24"><path d="'+(we.t0?'M7 5h4v14H7zM13 5h4v14h-4z':'M8 5v14l11-7z')+'"/></svg><span data-tick data-t="'+(we.t||0)+'" data-t0="'+(we.t0||'')+'">'+clock(exTime(we))+'</span></button></div></div>';
   var okN=0;
   h+='<div style="--day:var(--'+day+')">';
   R.ex.forEach(function(ex){
@@ -351,7 +354,7 @@ $('v-hoy').addEventListener('click',function(ev){
   if(b.dataset.day){var s=S.sessions[cur];if(s&&s.done&&s.day!==b.dataset.day){toast('Desmarca el día para cambiar de tren');return}viewDay=b.dataset.day;if(s){s.day=viewDay;save()}renderHoy();return}
   if(b.dataset.wk){cur=dateFor(+b.dataset.wk,(parse(cur).getDay()+6)%7);viewDay=defaultDay();renderHoy();return}
   if(a==='tm'){
-    var idt=b.closest('.ex').dataset.id,st=session(true),et=st.e[idt]||(st.e[idt]={});
+    var idt=b.closest('[data-id]').dataset.id,st=session(true),et=st.e[idt]||(st.e[idt]={});
     if(et.t0){et.t=exTime(et);delete et.t0}else{stopEx(st);et.t0=Date.now();if(!st.t0&&!st.done)st.t0=Date.now()}
     save();renderHoy();return;
   }
@@ -441,6 +444,8 @@ function timesCard(){
   ks.forEach(function(k){var x=S.sessions[k];if(x.day===d&&x.dur>0)durs.push(x.dur)});
   var rows=R.ex.map(function(ex){var a=[];ks.forEach(function(k){var e=S.sessions[k].e[ex.id];if(e&&e.t>0)a.push(e.t)});
     return {name:ex.name,n:a.length,avg:a.length?a.reduce(function(p,c){return p+c},0)/a.length:0}});
+  var wa=[];ks.forEach(function(k){var x=S.sessions[k],e=x.e.cal;if(x.day===d&&e&&e.t>0)wa.push(e.t)});
+  rows.unshift({name:'Calentamiento',n:wa.length,avg:wa.length?wa.reduce(function(p,c){return p+c},0)/wa.length:0});
   var mx=Math.max.apply(null,rows.map(function(r){return r.avg}));
   var h='<div class="card"><h2>Tiempos</h2><div class="seg" style="background:var(--bg)"><button data-td="sup" class="sup'+(d==='sup'?' on':'')+'">Tren superior</button><button data-td="inf" class="inf'+(d==='inf'?' on':'')+'">Tren inferior</button></div>';
   if(!durs.length&&!mx)return h+'<p class="empty">Todavía no hay tiempos de '+R.name.toLowerCase()+'. Usa el cronómetro de la pestaña Rutina y aquí verás cuánto te toma cada ejercicio y la rutina completa.</p></div>';
