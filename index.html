@@ -168,6 +168,10 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 .legend{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:12px;font-size:13px;color:var(--muted)}
 .legend i{display:inline-block;width:12px;height:12px;border-radius:4px;margin-right:6px;vertical-align:-1px}
 
+.code{margin-bottom:14px}
+.code summary{color:var(--accent);font-size:14px;font-weight:600;list-style:none;padding:2px 0 8px}
+.code summary::-webkit-details-marker{display:none}
+.code .fld input{font-size:16px;font-weight:400;text-align:left}
 .hrow{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
 .plus{flex:0 0 auto;width:48px;height:48px;border-radius:50%;background:var(--accent);color:var(--ink-on);font-size:30px;line-height:1;font-weight:500;display:grid;place-items:center;margin-top:2px}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -546,8 +550,9 @@ $('v-cal').addEventListener('click',function(ev){
 });
 
 /* ---------- Vista: Vero (medidas) ---------- */
-var FIELDS=[{k:'peso',n:'Peso'},{k:'grasa',n:'Grasa corporal',u:'%'},{k:'pecho',n:'Pecho',u:'cm'},{k:'cintura',n:'Cintura',u:'cm'},{k:'cadera',n:'Cadera',u:'cm'},{k:'brazo',n:'Brazo',u:'cm'},{k:'muslo',n:'Muslo',u:'cm'},{k:'pant',n:'Pantorrilla',u:'cm'}];
-function fu(f){return f.u||S.unit}
+var FIELDS=[{k:'peso',n:'Peso'},{k:'est',n:'Estatura',u:'cm'},{k:'grasa',n:'% Grasa',u:'%'},{k:'musc',n:'% Músculo',u:'%'},{k:'edad',n:'Edad metabólica',u:'años'},{k:'basal',n:'Metabolismo basal',u:'kcal'},{k:'visc',n:'Visceral',u:''},
+  {k:'pecho',n:'Pecho',u:'cm'},{k:'brazo',n:'Brazo',u:'cm'},{k:'cintura',n:'Cintura',u:'cm'},{k:'umb',n:'Umbilical',u:'cm'},{k:'cadera',n:'Glúteo',u:'cm'},{k:'muslo',n:'Muslo',u:'cm'},{k:'pant',n:'Pantorrilla',u:'cm'}];
+function fu(f){return f.u!=null?f.u:S.unit}
 function meds(){return S.med.slice().sort(function(a,b){return a.d<b.d?-1:a.d>b.d?1:0})}
 var medEdit=null,progMed='peso';
 function longDate(k){return shortDate(k)+' '+k.slice(0,4)}
@@ -557,8 +562,9 @@ function renderMe(){
   if(medEdit){
     var isNew=medEdit==='new',m=isNew?{d:today}:(S.med.filter(function(x){return x.d===medEdit})[0]||{d:today});
     h+='<div class="card"><h2>'+(isNew?(list.length?'Nuevas medidas':'Medidas iniciales'):'Editar medidas')+'</h2>';
+    if(isNew)h+='<details class="code"><summary>Tengo un código de medidas</summary><div class="row"><div class="fld"><input type="text" id="mcode" placeholder="Pega aquí el código" autocomplete="off" autocapitalize="off" spellcheck="false"></div><button class="chk" data-a="mcode">Cargar</button></div></details>';
     h+='<div class="fld" style="margin-bottom:12px"><label>Fecha</label><input type="date" id="md" value="'+m.d+'" max="'+today+'" style="max-width:none"></div><div class="grid2">';
-    FIELDS.forEach(function(f){h+='<div class="fld"><label>'+f.n+' ('+fu(f)+')</label><input inputmode="decimal" data-m="'+f.k+'" value="'+(m[f.k]!=null?fmt(m[f.k]):'')+'" placeholder="-"></div>'});
+    FIELDS.forEach(function(f){h+='<div class="fld"><label>'+f.n+(fu(f)&&fu(f)!=='%'?' ('+fu(f)+')':'')+'</label><input inputmode="decimal" data-m="'+f.k+'" value="'+(m[f.k]!=null?fmt(m[f.k]):'')+'" placeholder="-"></div>'});
     h+='</div><p class="sub" style="margin:10px 0 0">Llena solo las que tengas; el resto puede quedar vacío.</p><button class="finish" data-a="msave" style="margin-top:12px">Guardar</button>';
     h+='<div class="row2"><button class="vbtn" data-a="mcancel">Cancelar</button>'+(isNew?'':'<button class="vbtn" data-a="mdel" style="color:var(--danger)">Eliminar</button>')+'</div></div>';
   }
@@ -587,6 +593,13 @@ $('v-me').addEventListener('click',function(ev){
   var a=b.dataset.a;
   if(a==='add'){medEdit='new';renderMe();window.scrollTo(0,0);return}
   if(b.dataset.ed){medEdit=b.dataset.ed;renderMe();window.scrollTo(0,0);return}
+  if(a==='mcode'){
+    var parts=$('mcode').value.trim().split(';'),n=0;
+    if(!validIso(parts[0])){toast('Ese código no es válido');return}
+    $('md').value=parts[0];
+    parts.slice(1).forEach(function(kv){var x=kv.split('='),inp=document.querySelector('#v-me input[data-m="'+x[0].replace(/[^a-z]/g,'')+'"]'),v=num(x[1]);if(inp&&v!=null){inp.value=fmt(v);n++}});
+    toast(n?'Medidas cargadas. Revisa y toca Guardar':'Ese código no trae medidas');return;
+  }
   if(a==='mcancel'){medEdit=null;renderMe();return}
   if(a==='mdel'){S.med=S.med.filter(function(x){return x.d!==medEdit});medEdit=null;save();renderMe();toast('Registro eliminado');return}
   if(a==='msave'){
